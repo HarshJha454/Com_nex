@@ -3,31 +3,27 @@ package com.example.com_nex
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,191 +37,167 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SlumUpgradeApp() {
-    // Define custom colors
-    val customColorScheme = darkColorScheme(
-        primary = Color(0xFF2196F3),
-        secondary = Color(0xFF03DAC5),
-        tertiary = Color(0xFFE91E63),
-        background = Color(0xFFF5F5F5)
-    )
-
-    MaterialTheme(
-        colorScheme = customColorScheme
-    ) {
-        var selectedItem by remember { mutableStateOf(0) }
-        val navController = rememberNavController()
-
-        Scaffold(
-            bottomBar = {
-                NavigationBar {
-                    listOf(
-                        "Home" to Icons.Default.Home,
-                        "Projects" to Icons.Default.Build,
-                        "Report" to Icons.Default.Warning,
-                        "Info" to Icons.Default.Info
-                    ).forEachIndexed { index, (label, icon) ->
-                        NavigationBarItem(
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label) },
-                            selected = selectedItem == index,
-                            onClick = {
-                                selectedItem = index
-                                navController.navigate(label) {
-                                    popUpTo(navController.graph.startDestinationId)
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
+    val navController = rememberNavController()
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                listOf(
+                    "Explore" to Icons.Default.Home,
+                    "Info" to Icons.Default.Info
+                ).forEachIndexed { index, (label, icon) ->
+                    NavigationBarItem(
+                        icon = { Icon(icon, contentDescription = label) },
+                        label = { Text(label) },
+                        selected = false,
+                        onClick = { navController.navigate(label) }
+                    )
                 }
             }
-        ) { padding ->
-            NavHost(
-                navController = navController,
-                startDestination = "Home",
-                modifier = Modifier.padding(padding)
-            ) {
-                composable("Home") { CommunityMappingScreen() }
-                composable("Projects") { ProjectsDashboardScreen() }
-                composable("Report") { ReportIssueScreen() }
-                composable("Info") { ResourcesScreen() }
-            }
         }
+    ) { padding ->
+
+
+
+        NavHost(
+                    navController = navController,
+                    startDestination = "Explore",
+                    modifier = Modifier.padding(padding)
+                ) {
+                    composable("Explore") { ExplorePage() }
+                    composable("Info") { InfoPage() }
+                }
     }
 }
 
 @Composable
-fun CommunityMappingScreen() {
+fun ExplorePage() {
+    var searchQuery by remember { mutableStateOf("") }
+    val policies = listOf(
+        Policy("Free Health Checkup Scheme", "Health", "Details about free health checkups."),
+        Policy("Subsidized Housing", "Housing", "Details about housing subsidies."),
+        Policy("Free School Supplies Program", "Education", "Details about free supplies for schools."),
+        Policy("Skill Development Program", "Employment", "Details about skill development opportunities."),
+        Policy("Affordable Housing Scheme", "Housing", "Details about housing assistance for the poor.")
+    )
+
+    val filteredPolicies = policies.filter {
+        it.title.contains(searchQuery, ignoreCase = true) || it.category.contains(searchQuery, ignoreCase = true)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
-        // Header with location
-        Row(
+        // Search bar
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Search Policies") },
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.LocationOn,
-                contentDescription = "Location",
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                "Community Mapping",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            )
-        }
-
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") }
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Enhanced Map Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFE3F2FD)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "Interactive Map View",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+        // Policies List
+        LazyColumn {
+            items(filteredPolicies) { policy ->  // Ensure filteredPolicies is a List<Policy>
+                PolicyCard(policy = policy)       // Pass the 'policy' (not an integer index) to the PolicyCard
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
+
+
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Enhanced Issue Markers
-        Text(
-            "Common Issues",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IssueChip("Water", MaterialTheme.colorScheme.primary)
-            IssueChip("Electricity", MaterialTheme.colorScheme.secondary)
-            IssueChip("Sanitation", MaterialTheme.colorScheme.tertiary)
-        }
+        // Chatbot Section
+        ChatbotSection()
     }
 }
 
 @Composable
-fun IssueChip(label: String, chipColor: Color) {
-    AssistChip(
-        onClick = { },
-        label = { Text(label) },
-        leadingIcon = {
-            Icon(
-                Icons.Default.Warning,
-                contentDescription = label,
-                tint = chipColor
-            )
-        },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = chipColor.copy(alpha = 0.1f),
-            labelColor = chipColor
-        )
-    )
-}
+fun ChatbotSection() {
+    var userMessage by remember { mutableStateOf(TextFieldValue("")) }
+    var chatbotResponse by remember { mutableStateOf("Hello! How can I assist you today?") }
 
-@Composable
-fun ProjectsDashboardScreen() {
+    val policies = listOf(
+        Policy("Free Health Checkup Scheme", "Health", "Details about free health checkups."),
+        Policy("Subsidized Housing", "Housing", "Details about housing subsidies."),
+        Policy("Free School Supplies Program", "Education", "Details about free supplies for schools."),
+        Policy("Skill Development Program", "Employment", "Details about skill development opportunities."),
+        Policy("Affordable Housing Scheme", "Housing", "Details about housing assistance for the poor.")
+    )
+
+    fun findPolicyBasedOnQuery(query: String): String {
+        return when {
+            query.contains("build a house", ignoreCase = true) -> {
+                val housingPolicies = policies.filter { it.category == "Housing" }
+                "Here are some relevant policies for building a house:\n" + housingPolicies.joinToString("\n") {
+                    "${it.title}: ${it.details}"
+                }
+            }
+            query.contains("health", ignoreCase = true) -> {
+                val healthPolicies = policies.filter { it.category == "Health" }
+                "Here are some health-related policies:\n" + healthPolicies.joinToString("\n") {
+                    "${it.title}: ${it.details}"
+                }
+            }
+            else -> "Sorry, I couldn't find anything related to '$query'. Please try again."
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         Text(
-            "Ongoing Projects",
+            "Chat with us",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn {
-            val projects = listOf(
-                "Water Pipeline Project 1",
-                "Water Pipeline Project 2",
-                "Water Pipeline Project 3"
-            )
-            items(projects) { project ->
-                ProjectCard(
-                    title = project,
-                    status = "In Progress",
-                    progress = 0.7f
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+        // Chatbot conversation
+        Text("Chatbot: $chatbotResponse")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        BasicTextField(
+            value = userMessage,
+            onValueChange = {
+                userMessage = it
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .background(Color.Gray.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp))
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                chatbotResponse = findPolicyBasedOnQuery(userMessage.text)
+                userMessage = TextFieldValue("") // Clear the input field
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Send")
         }
     }
 }
 
 @Composable
-fun ProjectCard(title: String, status: String, progress: Float) {
+fun PolicyCard(policy: Int) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(8.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -233,158 +205,63 @@ fun ProjectCard(title: String, status: String, progress: Float) {
                 .fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    title,
+                    text = policy.title,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontWeight = FontWeight.Bold
                 )
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = when(status) {
-                            "In Progress" -> Color(0xFF4CAF50)
-                            else -> MaterialTheme.colorScheme.primary
-                        }.copy(alpha = 0.1f)
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        status,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = when(status) {
-                            "In Progress" -> Color(0xFF4CAF50)
-                            else -> MaterialTheme.colorScheme.primary
-                        }
-                    )
-                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LinearProgressIndicator(
-                progress = progress,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            Text(
+                text = policy.category,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(vertical = 4.dp)
             )
-        }
-    }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ReportIssueScreen() {
-    var category by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+            if (expanded) {
+                Text(
+                    text = policy.details,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            "Report an Issue",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // Removed the description text field part
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = category,
-                onValueChange = { },
-                readOnly = true,
-                label = { Text("Category") },
-                modifier = Modifier.menuAnchor().fillMaxWidth()
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+            Button(
+                onClick = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                listOf("Water", "Electricity", "Sanitation", "Roads", "Other").forEach { item ->
-                    DropdownMenuItem(
-                        text = { Text(item) },
-                        onClick = {
-                            category = item
-                            expanded = false
-                        }
-                    )
-                }
+                Text(if (expanded) "Hide Details" else "Show Details")
             }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                // You can add logic to handle the submission here.
-                // Example: submitting the report to a backend or storing locally.
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Send, contentDescription = "Submit")
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Submit Report")
         }
     }
 }
 
 @Composable
-fun ResourcesScreen() {
+fun InfoPage() {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         Text(
-            "Educational Resources",
+            "About the App",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn {
-            items(resourceItems) { resource ->
-                ResourceCard(resource)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
+        Text(
+            "This app provides information about government policies aimed at improving the quality of life for underprivileged communities."
+        )
     }
 }
 
-@Composable
-fun ResourceCard(title: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+data class Policy(val title: String, val category: String, val details: String)
 
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(title, style = MaterialTheme.typography.titleMedium)
-        }
-    }
-}
 
-private val resourceItems = listOf(
-    "Rainwater Harvesting Guide",
-    "Solar Lighting Solutions",
-    "Community Waste Management",
-    "Sustainable Building Practices"
-)

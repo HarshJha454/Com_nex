@@ -7,48 +7,43 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-
-object AppTheme {
-    val Primary = Color(0xFF1E88E5)       // Rich blue
-    val Secondary = Color(0xFF43A047)     // Forest green
-    val Background = Color(0xFFF5F5F5)    // Light gray
-    val Surface = Color(0xFFFFFFFF)       // White
-    val TextPrimary = Color(0xFF212121)   // Dark gray
-    val TextSecondary = Color(0xFF757575) // Medium gray
-    val Accent = Color(0xFFFF6D00)        // Orange accent
-}
+import com.example.com_nex.ui.theme.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = AppTheme.Primary,
-                    secondary = AppTheme.Secondary,
-                    background = AppTheme.Background,
-                    surface = AppTheme.Surface
-                )
-            ) {
-                SlumUpgradeApp()
+            Com_nexTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainApp()
+                }
             }
         }
     }
@@ -56,170 +51,401 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SlumUpgradeApp() {
+fun MainApp() {
     val navController = rememberNavController()
+    var selectedLanguage by remember { mutableStateOf("ಕನ್ನಡ") }
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (selectedLanguage == "ಕನ್ನಡ") "ಸಮುದಾಯ ನೆಕ್ಸಸ್" else "Community Nexus",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        LanguageSelector(
+                            currentLanguage = selectedLanguage,
+                            onLanguageSelected = { selectedLanguage = it }
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        },
         bottomBar = {
             NavigationBar(
-                containerColor = AppTheme.Surface,
-                contentColor = AppTheme.Primary
+                modifier = Modifier.clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp
             ) {
                 val items = listOf(
-                    Triple("Home", "Home", Icons.Default.Home),
-                    Triple("Search", "Search Policies", Icons.Default.Search),
-                    Triple("Help", "AI Help", Icons.Outlined.HelpOutline)
+                    NavigationItem("ಮುಖಪುಟ", "Home", Icons.Rounded.Home),
+                    NavigationItem("ಅನ್ವೇಷಿಸಿ", "Explore", Icons.Rounded.Explore),
+                    NavigationItem("ಸಮುದಾಯ", "Community", Icons.Rounded.Groups),
+                    NavigationItem("ಸಹಾಯ", "Help", Icons.Rounded.Help)
                 )
-                items.forEach { (label, route, icon) ->
+
+                items.forEach { item ->
+                    val selected = currentDestination?.hierarchy?.any { it.route == item.englishLabel } == true
                     NavigationBarItem(
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label) },
-                        selected = false,
-                        onClick = { navController.navigate(route) }
+                        icon = { Icon(item.icon, contentDescription = null) },
+                        label = { Text(if (selectedLanguage == "ಕನ್ನಡ") item.kannadaLabel else item.englishLabel) },
+                        selected = selected,
+                        onClick = {
+                            navController.navigate(item.englishLabel) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                            }
+                        }
                     )
                 }
             }
         }
-    ) { padding ->
+    ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = "Home",
-            modifier = Modifier.padding(padding)
+            modifier = Modifier.padding(innerPadding)
         ) {
-            composable("Home") { HomePage(navController) }
-            composable("Search Policies") { SearchPoliciesPage() }
-            composable("AI Help") { AIHelpPage() }
+            composable("Home") {
+                HomeContent(selectedLanguage = selectedLanguage)
+            }
+            composable("Explore") {
+                ExploreScreen(selectedLanguage)
+            }
+            composable("Community") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(if (selectedLanguage == "ಕನ್ನಡ") "ಸಮುದಾಯ ಪುಟ" else "Community Page")
+                }
+            }
+            composable("Help") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(if (selectedLanguage == "ಕನ್ನಡ") "ಸಹಾಯ ಪುಟ" else "Help Page")
+                }
+            }
         }
     }
 }
 
 @Composable
-fun HomePage(navController: androidx.navigation.NavController) {
-    Box(
+fun ExploreScreen(selectedLanguage: String) {
+
+}
+
+@Composable
+fun HomeContent(selectedLanguage: String) {
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppTheme.Background)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(vertical = 16.dp)
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(24.dp)
-                    ) {
-                        Text(
-                            text = "Community Development",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = AppTheme.Primary
-                        )
-                        Text(
-                            text = "Empowering Communities Together",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = AppTheme.TextSecondary,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                }
+                WelcomeCard(selectedLanguage)
             }
 
             item {
-                Text(
-                    text = "Quick Actions",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 16.dp)
-                )
+                EmergencyServicesSection(selectedLanguage)
             }
 
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    QuickActionButton(
-                        title = "Search Policies",
-                        description = "Find relevant policies",
-                        color = AppTheme.Primary,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        navController.navigate("Search Policies")
-                    }
-                    QuickActionButton(
-                        title = "AI Assistant",
-                        description = "Get instant help",
-                        color = AppTheme.Secondary,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        navController.navigate("AI Help")
-                    }
-                }
+                QuickActionsGrid(selectedLanguage)
             }
 
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Latest Updates",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        UpdateItem("New healthcare initiative launched", "2 hours ago")
-                        UpdateItem("Community meeting scheduled", "1 day ago")
-                        UpdateItem("Housing scheme registration open", "2 days ago")
-                    }
-                }
+                CommunityUpdates(selectedLanguage)
             }
         }
     }
 }
 
 @Composable
-fun QuickActionButton(
-    title: String,
-    description: String,
-    color: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
+fun WelcomeCard(language: String) {
     Card(
-        modifier = modifier
-            .height(120.dp)
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = color)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary
+                        )
+                    )
+                )
+                .padding(24.dp)
+        ) {
+            Column {
+                Text(
+                    text = if (language == "ಕನ್ನಡ") "ನಮಸ್ಕಾರ!" else "Welcome!",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (language == "ಕನ್ನಡ")
+                        "ಸಮುದಾಯ ನೆಕ್ಸಸ್‌ಗೆ ಸ್ವಾಗತ"
+                    else
+                        "Welcome to Community Nexus",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun EmergencyServicesSection(language: String) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = if (language == "ಕನ್ನಡ") "ತುರ್ತು ಸೇವೆಗಳು" else "Emergency Services",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(emergencyServices) { service ->
+                EmergencyServiceCard(
+                    service = service,
+                    language = language
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickActionsGrid(language: String) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = if (language == "ಕನ್ನಡ") "ತ್ವರಿತ ಕ್ರಿಯೆಗಳು" else "Quick Actions",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.height(240.dp)
+        ) {
+            items(quickActions) { action ->
+                QuickActionCard(
+                    action = action,
+                    language = language
+                )
+            }
+        }
+    }
+}
+
+data class NavigationItem(
+    val kannadaLabel: String,
+    val englishLabel: String,
+    val icon: ImageVector
+)
+
+data class EmergencyService(
+    val kannadaTitle: String,
+    val englishTitle: String,
+    val icon: ImageVector,
+    val color: Color
+)
+
+val emergencyServices = listOf(
+    EmergencyService("ಪೊಲೀಸ್", "Police", Icons.Rounded.LocalPolice, Color(0xFF1A237E)),
+    EmergencyService("ಆಂಬ್ಯುಲೆನ್ಸ್", "Ambulance", Icons.Rounded.LocalHospital, Color(0xFFC62828)),
+    EmergencyService("ಅಗ್ನಿಶಾಮಕ", "Fire", Icons.Rounded.LocalFireDepartment, Color(0xFFE65100))
+)
+
+data class QuickAction(
+    val kannadaTitle: String,
+    val englishTitle: String,
+    val kannadaDescription: String,
+    val englishDescription: String,
+    val icon: ImageVector,
+    val backgroundColor: Color
+)
+
+val quickActions = listOf(
+    QuickAction(
+        "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
+        "Government Schemes",
+        "ವಸತಿ ನೆರವು ಯೋಜನೆಗಳು",
+        "Housing assistance schemes",
+        Icons.Rounded.AccountBalance,
+        Color(0xFF1565C0)
+    ),
+    QuickAction(
+        "ಧ್ವನಿ ಸಹಾಯಕ",
+        "Voice Assistant",
+        "ಧ್ವನಿ ಆಧಾರಿತ ಬೆಂಬಲ",
+        "Voice-based support",
+        Icons.Rounded.KeyboardVoice,
+        Color(0xFF2E7D32)
+    ),
+    QuickAction(
+        "ಸಮುದಾಯ ಚರ್ಚೆ",
+        "Community Discussion",
+        "ಸಮುದಾಯದ ಸದಸ್ಯರೊಂದಿಗೆ ಸಂಪರ್ಕ",
+        "Connect with community",
+        Icons.Rounded.Forum,
+        Color(0xFF6A1B9A)
+    ),
+    QuickAction(
+        "ಕೌಶಲ್ಯ ತರಬೇತಿ",
+        "Skill Training",
+        "ಉದ್ಯೋಗ ತರಬೇತಿ ಕಾರ್ಯಕ್ರಮಗಳು",
+        "Job training programs",
+        Icons.Rounded.School,
+        Color(0xFFD84315)
+    )
+)
+
+@Composable
+fun LanguageSelector(
+    currentLanguage: String,
+    onLanguageSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        TextButton(
+            onClick = { expanded = true },
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Text(currentLanguage)
+            Icon(
+                Icons.Filled.ArrowDropDown,
+                contentDescription = "Select language"
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("ಕನ್ನಡ") },
+                onClick = {
+                    onLanguageSelected("ಕನ್ನಡ")
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("English") },
+                onClick = {
+                    onLanguageSelected("English")
+                    expanded = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun EmergencyServiceCard(service: EmergencyService, language: String) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .clickable { /* Handle emergency service click */ },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = service.color)
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Icon(
+                imageVector = service.icon,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = title,
+                text = if (language == "ಕನ್ನಡ") service.kannadaTitle else service.englishTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+fun QuickActionCard(action: QuickAction, language: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { /* Handle quick action click */ },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = action.backgroundColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Icon(
+                imageVector = action.icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
+                text = if (language == "ಕನ್ನಡ") action.kannadaTitle else action.englishTitle,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = if (language == "ಕನ್ನಡ") action.kannadaDescription else action.englishDescription,
+                style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f)
             )
         }
@@ -227,235 +453,62 @@ fun QuickActionButton(
 }
 
 @Composable
-fun UpdateItem(title: String, time: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+fun CommunityUpdates(language: String) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
     ) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppTheme.TextPrimary
+            text = if (language == "ಕನ್ನಡ") "ಸಮುದಾಯ ಅಪ್‌ಡೇಟ್‌ಗಳು" else "Community Updates",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
         )
-        Text(
-            text = time,
-            style = MaterialTheme.typography.bodySmall,
-            color = AppTheme.TextSecondary
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Sample updates
+        UpdateCard(
+            title = if (language == "ಕನ್ನಡ")
+                "ಹೊಸ ಆರೋಗ್ಯ ಶಿಬಿರ"
+            else
+                "New Health Camp",
+            time = if (language == "ಕನ್ನಡ") "2 ಗಂಟೆಗಳ ಹಿಂದೆ" else "2 hours ago"
+        )
+        UpdateCard(
+            title = if (language == "ಕನ್ನಡ")
+                "ಸಮುದಾಯ ಸಭೆ"
+            else
+                "Community Meeting",
+            time = if (language == "ಕನ್ನಡ") "1 ದಿನದ ಹಿಂದೆ" else "1 day ago"
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchPoliciesPage() {
-    var searchQuery by remember { mutableStateOf("") }
-    val policies = listOf(
-        PolicyItem("Free Health Checkup Scheme", "Healthcare", "Provides free health checkups for all community members"),
-        PolicyItem("Subsidized Housing", "Housing", "Affordable housing options for low-income families"),
-        PolicyItem("Free School Supplies Program", "Education", "Distribution of school supplies to students"),
-        PolicyItem("Skill Development Program", "Education", "Professional training and skill development courses"),
-        PolicyItem("Affordable Housing Scheme", "Housing", "Housing assistance for eligible residents")
-    )
-
-    val filteredPolicies = policies.filter {
-        it.title.contains(searchQuery, ignoreCase = true) ||
-                it.category.contains(searchQuery, ignoreCase = true)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppTheme.Background)
-            .padding(16.dp)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            TextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Search policies...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-                colors = TextFieldDefaults.textFieldColors(
-                    containerColor = AppTheme.Surface,
-                    focusedIndicatorColor = AppTheme.Primary,
-                    unfocusedIndicatorColor = AppTheme.TextSecondary
-                )
-            )
-        }
-
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredPolicies) { policy ->
-                PolicyCard(policy)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AIHelpPage() {
-    var userMessage by remember { mutableStateOf("") }
-    var chatMessages by remember { mutableStateOf(listOf(
-        ChatMessage("AI", "Hello! How can I assist you today?")
-    )) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppTheme.Background)
-            .padding(16.dp)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "AI Assistant",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = AppTheme.Primary
-                )
-                Text(
-                    text = "Get instant help with your questions",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppTheme.TextSecondary
-                )
-            }
-        }
-
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            items(chatMessages) { message ->
-                ChatBubble(message)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = userMessage,
-                    onValueChange = { userMessage = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Type your message...") },
-                    colors = TextFieldDefaults.textFieldColors(
-                        containerColor = AppTheme.Surface,
-                        focusedIndicatorColor = AppTheme.Primary,
-                        unfocusedIndicatorColor = AppTheme.TextSecondary
-                    )
-                )
-                IconButton(
-                    onClick = {
-                        if (userMessage.isNotBlank()) {
-                            chatMessages = chatMessages + ChatMessage("User", userMessage)
-                            chatMessages = chatMessages + ChatMessage("AI", "I understand your question about: $userMessage")
-                            userMessage = ""
-                        }
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.Send,
-                        contentDescription = "Send",
-                        tint = AppTheme.Primary
-                    )
-                }
-            }
-        }
-    }
-}
-
-data class PolicyItem(
-    val title: String,
-    val category: String,
-    val description: String
-)
-
-@Composable
-fun PolicyCard(policy: PolicyItem) {
+fun UpdateCard(title: String, time: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = policy.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppTheme.TextPrimary
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
             )
             Text(
-                text = policy.category,
+                text = time,
                 style = MaterialTheme.typography.bodySmall,
-                color = AppTheme.Primary,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-            Text(
-                text = policy.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppTheme.TextSecondary
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }
 }
 
-data class ChatMessage(
-    val sender: String,
-    val content: String
-)
-
-@Composable
-fun ChatBubble(message: ChatMessage) {
-    val isAI = message.sender == "AI"
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isAI) Arrangement.Start else Arrangement.End
-    ) {
-        Card(
-            modifier = Modifier.widthIn(max = 280.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isAI) AppTheme.Surface else AppTheme.Primary
-            )
-        ) {
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isAI) AppTheme.TextPrimary else Color.White,
-                modifier = Modifier.padding(12.dp)
-            )
-        }
-    }
-}
+// Add implementations for EmergencyServiceCard and other supporting composables...

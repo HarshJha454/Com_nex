@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,45 +22,59 @@ fun HomeScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Background)
             .padding(16.dp)
     ) {
-        // Welcome Header
+        // Welcome Header with gradient background
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            )
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "नमस्ते! Welcome to Community Nexus",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Connecting communities, empowering lives",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(Primary, PrimaryDark)
+                        )
+                    )
+                    .padding(24.dp)
+            ) {
+                Column {
+                    Text(
+                        "नमस्ते! Welcome",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Empowering communities through technology",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Quick Actions
+        // Quick Actions Section
         Text(
             "Quick Actions",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
         )
         
+        Spacer(modifier = Modifier.height(16.dp))
+
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(quickActionItems) { item ->
                 QuickActionCard(item)
@@ -73,7 +89,9 @@ fun QuickActionCard(action: QuickAction) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { /* Handle click */ },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface)
     ) {
         Row(
             modifier = Modifier
@@ -81,21 +99,32 @@ fun QuickActionCard(action: QuickAction) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = action.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Primary.copy(alpha = 0.1f)
+            ) {
+                Icon(
+                    imageVector = action.icon,
+                    contentDescription = null,
+                    modifier = Modifier.padding(12.dp),
+                    tint = Primary
+                )
+            }
+            
             Spacer(modifier = Modifier.width(16.dp))
+            
             Column {
                 Text(
                     text = action.title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary
                 )
                 Text(
                     text = action.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = TextSecondary
                 )
             }
         }
@@ -111,17 +140,22 @@ data class QuickAction(
 val quickActionItems = listOf(
     QuickAction(
         "Government Schemes",
-        "Find schemes and policies for housing assistance",
-        Icons.Default.Home
+        "Access housing and welfare programs",
+        Icons.Default.AccountBalance
     ),
     QuickAction(
         "Voice Assistant",
-        "Get help through voice-based support",
-        Icons.Default.Build
+        "Get instant help in your language",
+        Icons.Default.RecordVoiceOver
     ),
     QuickAction(
-        "Community Discussion",
-        "Connect with your community members",
-        Icons.Default.Send
+        "Community Forum",
+        "Connect and share with neighbors",
+        Icons.Default.Groups
+    ),
+    QuickAction(
+        "Emergency Services",
+        "Quick access to emergency contacts",
+        Icons.Default.LocalHospital
     )
 ) 

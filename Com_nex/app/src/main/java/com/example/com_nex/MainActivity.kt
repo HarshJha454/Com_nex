@@ -1,6 +1,10 @@
 package com.example.com_nex
 
+import android.content.Intent
 import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -26,6 +30,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicNone
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
@@ -70,6 +76,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +88,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -417,19 +425,57 @@ fun ExploreCard(item: ExploreItem, selectedLanguage: String) {
         }
     }
 }
+
 data class ChatMessage(val text: String, val isUser: Boolean)
 
 @Composable
 fun HelpScreen(selectedLanguage: String) {
     var userMessage by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<ChatMessage>() }
+    var isListening by remember { mutableStateOf(false) }
+
+    // Get context outside of remember
+    val context = LocalContext.current
+    // Initialize speech recognizer properly
+    val speechRecognizer: SpeechRecognizer = remember(context) {
+        SpeechRecognizer.createSpeechRecognizer(context)
+    }
 
     // Define custom dark theme colors
-    val backgroundColor = Color(0xFF121212)  // Dark background
-    val userMessageColor = Color(0xFF2979FF)  // Bright blue for user messages
-    val botMessageColor = Color(0xFF1E1E1E)   // Slightly lighter dark for bot
+    val backgroundColor = Color(0xFF121212)
+    val userMessageColor = Color(0xFF2979FF)
+    val botMessageColor = Color(0xFF1E1E1E)
     val textColor = Color.White
     val secondaryTextColor = Color.White.copy(alpha = 0.7f)
+
+    // Speech recognizer listener
+    val speechListener = remember {
+        object : RecognitionListener {
+            override fun onResults(results: Bundle?) {
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                matches?.get(0)?.let { result ->
+                    userMessage = result
+                }
+            }
+
+            override fun onReadyForSpeech(params: Bundle?) { isListening = true }
+            override fun onEndOfSpeech() { isListening = false }
+            override fun onError(error: Int) { isListening = false }
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        }
+    }
+
+    // Initialize speech recognizer
+    DisposableEffect(speechRecognizer) {
+        speechRecognizer.setRecognitionListener(speechListener)
+        onDispose {
+            speechRecognizer.destroy()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -445,11 +491,11 @@ fun HelpScreen(selectedLanguage: String) {
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Chat messages
+        // Chat messages - Now in correct order (newest at bottom)
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            reverseLayout = true
+            reverseLayout = false // Changed to false to show newest messages at bottom
         ) {
             items(messages) { message ->
                 MessageBubble(
@@ -490,6 +536,29 @@ fun HelpScreen(selectedLanguage: String) {
                 ),
                 singleLine = true
             )
+
+            // Voice input button
+            IconButton(
+                onClick = {
+                    if (!isListening) {
+                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                        }
+                        speechRecognizer.startListening(intent)
+                    } else {
+                        speechRecognizer.stopListening()
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = if (isListening) Icons.Filled.Mic else Icons.Filled.MicNone,
+                    contentDescription = "Voice input",
+                    tint = if (isListening) userMessageColor else Color.Gray
+                )
+            }
+
+            // Send button
             IconButton(
                 onClick = {
                     if (userMessage.isNotBlank()) {
@@ -515,7 +584,6 @@ fun HelpScreen(selectedLanguage: String) {
         }
     }
 }
-
 @Composable
 fun MessageBubble(
     message: ChatMessage,

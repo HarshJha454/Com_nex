@@ -1,12 +1,16 @@
 package com.example.com_nex
 
+import android.Manifest.permission.RECORD_AUDIO
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -77,6 +81,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -95,7 +100,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -426,56 +431,96 @@ fun ExploreCard(item: ExploreItem, selectedLanguage: String) {
     }
 }
 
-data class ChatMessage(val text: String, val isUser: Boolean)
 
+data class ChatMessage(val text: String, val isUser: Boolean)
 @Composable
 fun HelpScreen(selectedLanguage: String) {
     var userMessage by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<ChatMessage>() }
     var isListening by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Get context outside of remember
     val context = LocalContext.current
-    // Initialize speech recognizer properly
-    val speechRecognizer: SpeechRecognizer = remember(context) {
-        SpeechRecognizer.createSpeechRecognizer(context)
+    var hasRecordPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        )
     }
 
-    // Define custom dark theme colors
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasRecordPermission = isGranted
+        if (!isGranted) {
+            errorMessage = "Microphone permission is required for voice input"
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasRecordPermission) {
+            permissionLauncher.launch(RECORD_AUDIO)
+        }
+    }
+
+    val speechRecognizer = remember(hasRecordPermission) {
+        if (hasRecordPermission) {
+            SpeechRecognizer.createSpeechRecognizer(context).apply {
+                setRecognitionListener(object : RecognitionListener {
+                    override fun onResults(results: Bundle?) {
+                        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        matches?.get(0)?.let { result ->
+                            userMessage = result
+                            isListening = false
+                            errorMessage = null
+                        }
+                    }
+
+                    override fun onReadyForSpeech(params: Bundle?) {
+                        isListening = true
+                        errorMessage = null
+                    }
+
+                    override fun onEndOfSpeech() {
+                        isListening = false
+                    }
+
+                    override fun onError(error: Int) {
+                        isListening = false
+                        errorMessage = when (error) {
+                            SpeechRecognizer.ERROR_NO_MATCH -> "No speech detected"
+                            SpeechRecognizer.ERROR_NETWORK -> "Network error"
+                            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
+                            SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
+                            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission denied"
+                            else -> "Error occurred"
+                        }
+                    }
+
+                    override fun onBeginningOfSpeech() {}
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onPartialResults(partialResults: Bundle?) {}
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+            }
+        } else null
+    }
+
+    DisposableEffect(speechRecognizer) {
+        onDispose {
+            speechRecognizer?.destroy()
+        }
+    }
+
     val backgroundColor = Color(0xFF121212)
     val userMessageColor = Color(0xFF2979FF)
     val botMessageColor = Color(0xFF1E1E1E)
     val textColor = Color.White
     val secondaryTextColor = Color.White.copy(alpha = 0.7f)
-
-    // Speech recognizer listener
-    val speechListener = remember {
-        object : RecognitionListener {
-            override fun onResults(results: Bundle?) {
-                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                matches?.get(0)?.let { result ->
-                    userMessage = result
-                }
-            }
-
-            override fun onReadyForSpeech(params: Bundle?) { isListening = true }
-            override fun onEndOfSpeech() { isListening = false }
-            override fun onError(error: Int) { isListening = false }
-            override fun onBeginningOfSpeech() {}
-            override fun onRmsChanged(rmsdB: Float) {}
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onPartialResults(partialResults: Bundle?) {}
-            override fun onEvent(eventType: Int, params: Bundle?) {}
-        }
-    }
-
-    // Initialize speech recognizer
-    DisposableEffect(speechRecognizer) {
-        speechRecognizer.setRecognitionListener(speechListener)
-        onDispose {
-            speechRecognizer.destroy()
-        }
-    }
+    val errorColor = Color(0xFFCF6679)
 
     Column(
         modifier = Modifier
@@ -489,13 +534,22 @@ fun HelpScreen(selectedLanguage: String) {
             fontWeight = FontWeight.Bold,
             color = textColor
         )
+
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = errorMessage!!,
+                color = errorColor,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Chat messages - Now in correct order (newest at bottom)
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            reverseLayout = false // Changed to false to show newest messages at bottom
+            reverseLayout = false
         ) {
             items(messages) { message ->
                 MessageBubble(
@@ -507,7 +561,6 @@ fun HelpScreen(selectedLanguage: String) {
             }
         }
 
-        // Input area
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -537,17 +590,31 @@ fun HelpScreen(selectedLanguage: String) {
                 singleLine = true
             )
 
-            // Voice input button
             IconButton(
                 onClick = {
                     if (!isListening) {
-                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                        if (hasRecordPermission) {
+                            speechRecognizer?.let { recognizer ->
+                                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (selectedLanguage == "ಕನ್ನಡ") "kn-IN" else "en-US")
+                                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                                }
+                                try {
+                                    recognizer.startListening(intent)
+                                    errorMessage = null
+                                } catch (e: Exception) {
+                                    errorMessage = "Failed to start voice recognition"
+                                }
+                            } ?: run {
+                                permissionLauncher.launch(RECORD_AUDIO)
+                            }
+                        } else {
+                            permissionLauncher.launch(RECORD_AUDIO)
                         }
-                        speechRecognizer.startListening(intent)
                     } else {
-                        speechRecognizer.stopListening()
+                        speechRecognizer?.stopListening()
+                        isListening = false
                     }
                 }
             ) {
@@ -558,20 +625,18 @@ fun HelpScreen(selectedLanguage: String) {
                 )
             }
 
-            // Send button
             IconButton(
                 onClick = {
                     if (userMessage.isNotBlank()) {
                         val newMessage = ChatMessage(text = userMessage, isUser = true)
                         messages.add(newMessage)
 
-                        // Fetch response from the backend
                         fetchChatbotResponse(userMessage) { response ->
                             response?.let { ChatMessage(text = it, isUser = false) }
                                 ?.let { messages.add(it) }
                         }
 
-                        userMessage = "" // Clear the input field
+                        userMessage = ""
                     }
                 }
             ) {
@@ -584,6 +649,7 @@ fun HelpScreen(selectedLanguage: String) {
         }
     }
 }
+
 @Composable
 fun MessageBubble(
     message: ChatMessage,
@@ -613,26 +679,35 @@ fun MessageBubble(
     }
 }
 
-
+private fun startVoiceRecognition(speechRecognizer: SpeechRecognizer) {
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+    }
+    try {
+        speechRecognizer.startListening(intent)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
 
 fun fetchChatbotResponse(userMessage: String, onResponse: (String?) -> Unit) {
     val client = OkHttpClient()
-    val url = "https://commuity-nexus-backend.vercel.app/chat" // Corrected endpoint
+    val url = "https://commuity-nexus-backend.vercel.app/chat"
 
-    // Create JSON payload
     val json = JSONObject().apply {
         put("message", userMessage)
     }
 
     val requestBody = json.toString().toRequestBody("application/json".toMediaType())
 
-    // Create HTTP request
     val request = Request.Builder()
         .url(url)
         .post(requestBody)
         .build()
 
-    // Perform network call
     CoroutineScope(Dispatchers.IO).launch {
         try {
             client.newCall(request).execute().use { response ->
@@ -656,7 +731,6 @@ fun fetchChatbotResponse(userMessage: String, onResponse: (String?) -> Unit) {
         }
     }
 }
-
 
 
 

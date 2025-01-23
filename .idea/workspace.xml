@@ -5,8 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b5738106-e802-4307-a255-47ed09ea1f81" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Com_nex/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Com_nex/.idea/deploymentTargetSelector.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Com_nex/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Com_nex/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,10 +18,10 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 2
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 2
+}</component>
   <component name="ProjectId" id="2rADLX8FP50UJPJ8cGQywXUmCTT" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -35,9 +34,9 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "v0",
+    "git-widget-placeholder": "master",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/ayushratan/Desktop/Projects/Com_nex",
+    "last_opened_file_path": "C:/Users/hp/Desktop/app/Com_nex/Com_nex",
     "settings.editor.selected.configurable": "AndroidSdkUpdater"
   }
 }]]></component>

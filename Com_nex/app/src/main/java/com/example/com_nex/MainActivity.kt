@@ -5,6 +5,7 @@ package com.example.com_nex
 import android.Manifest.permission.RECORD_AUDIO
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -50,12 +51,15 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Fireplace
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicNone
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Agriculture
@@ -1332,13 +1336,33 @@ data class EmergencyService(
     val kannadaTitle: String,
     val englishTitle: String,
     val icon: ImageVector,
-    val color: Color
+    val color: Color,
+    val phoneNumber: String // New field
 )
 
 val emergencyServices = listOf(
-    EmergencyService("ಪೊಲೀಸ್", "Police", Icons.Rounded.LocalPolice, Color(0xFF1A237E)),
-    EmergencyService("ಆಂಬ್ಯುಲೆನ್ಸ್", "Ambulance", Icons.Rounded.LocalHospital, Color(0xFFC62828)),
-    EmergencyService("ಅಗ್ನಿಶಾಮಕ", "Fire", Icons.Rounded.LocalFireDepartment, Color(0xFFE65100))
+    EmergencyService(
+        kannadaTitle = "ಪೊಲೀಸರು",
+        englishTitle = "Police",
+        icon = Icons.Default.Shield,
+        color = Color(0xFF1A237E) ,
+        phoneNumber = "100"
+    ),
+    EmergencyService(
+        kannadaTitle = "ಆಂಬ್ಯುಲೆನ್ಸ್",
+        englishTitle = "Ambulance",
+        icon = Icons.Default.LocalHospital,
+        color = Color(0xFFC62828),
+        phoneNumber = "108"
+    ),
+    EmergencyService(
+        kannadaTitle = "ಅಗ್ನಿಶಾಮಕ",
+        englishTitle = "Fire Brigade",
+        icon = Icons.Default.Fireplace,
+        color = Color(0xFFE65100),
+        phoneNumber = "101"
+    )
+    // Add more services as needed
 )
 
 data class QuickAction(
@@ -1428,12 +1452,21 @@ fun LanguageSelector(
     }
 }
 
+
 @Composable
 fun EmergencyServiceCard(service: EmergencyService, language: String) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier
             .width(160.dp)
-            .clickable { /* Handle emergency service click */ },
+            .clickable {
+                // Launch dialer intent with the specific phone number
+                val intent = Intent(Intent.ACTION_DIAL).apply {
+                    data = Uri.parse("tel:${service.phoneNumber}")
+                }
+                context.startActivity(intent)
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = service.color)
     ) {
@@ -1458,6 +1491,7 @@ fun EmergencyServiceCard(service: EmergencyService, language: String) {
         }
     }
 }
+
 
 @Composable
 fun QuickActionCard(action: QuickAction, language: String) {

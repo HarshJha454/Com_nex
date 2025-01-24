@@ -6,6 +6,7 @@ import android.Manifest.permission.RECORD_AUDIO
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -16,6 +17,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOutQuart
 import androidx.compose.animation.core.EaseOutQuart
@@ -30,11 +32,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,6 +53,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fireplace
@@ -61,13 +66,12 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Agriculture
-import androidx.compose.material.icons.rounded.AirplanemodeActive
-import androidx.compose.material.icons.rounded.AttachMoney
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.Business
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.CleaningServices
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Groups
@@ -76,12 +80,12 @@ import androidx.compose.material.icons.rounded.Help
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.House
 import androidx.compose.material.icons.rounded.KeyboardVoice
-import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.LocalHospital
-import androidx.compose.material.icons.rounded.LocalPolice
-import androidx.compose.material.icons.rounded.Money
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.PregnantWoman
 import androidx.compose.material.icons.rounded.Sailing
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.StoreMallDirectory
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -91,6 +95,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -122,6 +127,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
@@ -135,6 +141,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -161,6 +169,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.time.LocalTime
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
@@ -611,178 +620,92 @@ fun MainApp() {
     }
 }
 
-@Composable
-fun ExploreScreen(selectedLanguage: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-    ) {
-        Text(
-            text = if (selectedLanguage == "ಕನ್ನಡ") "ಅನ್ವೇಷಿಸಿ" else "Explore",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(exploreItems) { item ->
-                ExploreCard(item, selectedLanguage)
-            }
-        }
-    }
-}
-
 data class ExploreItem(
     val kannadaTitle: String,
     val englishTitle: String,
     val descriptionKannada: String,
     val descriptionEnglish: String,
     val icon: ImageVector,
-    val backgroundColor: Color
+    val backgroundColor: Color,
+    val fullDescriptionKannada: String,
+    val fullDescriptionEnglish: String,
+    val websiteLink: String? = null,
+    val contactNumber: String? = null,
+    val eligibilityCriteria: String? = null,
+    val benefitDetails: String? = null
 )
 
-val exploreItems = listOf(
-
-    ExploreItem(
-        kannadaTitle = "ಮಹಾತ್ಮಾ ಗಾಂಧಿ ರಾಷ್ಟ್ರೀಯ ಗ್ರಾಮೀಣ ಉದ್ಯೋಗ ಖಾತರಿ ಯೋಜನೆ",
-        englishTitle = "Mahatma Gandhi National Rural Employment Guarantee Act",
-        descriptionKannada = "ಗ್ರಾಮೀಣ ಪ್ರದೇಶಗಳಲ್ಲಿ ಉದ್ಯೋಗ ಖಾತರಿಯನ್ನು ಒದಗಿಸುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme to provide employment guarantee in rural areas",
-        icon = Icons.Rounded.AccountBalance,
-        backgroundColor = Color(0xFF8BC34A)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಪಂದಿತ್ ದೀನ ದಯಾಲು ಉಪಾಧ್ಯಾಯ ಗರಿಫ ಫಂಡ್ ಯೋಜನೆ",
-        englishTitle = "Pandit Deen Dayal Upadhyaya Gramin Kaushalya Yojana",
-        descriptionKannada = "ಗ್ರಾಮೀಣ ಯುವಕರಿಗೆ ಉದ್ಯೋಗ ಕೌಶಲ್ಯವನ್ನು ಅಭಿವೃದ್ಧಿಪಡಿಸುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme to develop employment skills for rural youth",
-        icon = Icons.Rounded.Work,
-        backgroundColor = Color(0xFF3F51B5)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಜೀವ ಜೋತಿ ಯೋಜನೆ",
-        englishTitle = "Jeevan Jyoti Yojana",
-        descriptionKannada = "ಬೀಮಾ ಯೋಜನೆಯಡಿ ಜೀವ ವಿಮೆ ನೀಡುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme providing life insurance under a specific insurance policy",
-        icon = Icons.Rounded.HealthAndSafety,
-        backgroundColor = Color(0xFFF44336)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಆರೋಗ್ಯ ಸುರಕ್ಷಾ ಯೋಜನೆ",
-        englishTitle = "Health Security Scheme",
-        descriptionKannada = "ಆರೋಗ್ಯ ಸೇವೆಗಳ ಸುಲಭ ಪೂರೈಕೆಗಾಗಿ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme for the easy provision of health services",
-        icon = Icons.Rounded.LocalHospital,
-        backgroundColor = Color(0xFFFFC107)
-    ),
-    ExploreItem(
-        kannadaTitle = "ನಿಷ್ಕಪಟ ವಿದ್ಯುತ್ ಯೋಜನೆ",
-        englishTitle = "Unbiased Electricity Scheme",
-        descriptionKannada = "ಎಲ್ಲಾ ವರ್ಗಗಳ ಮಂದಿಗೆ ವಿದ್ಯುತ್ ಸರಬರಾಜು",
-        descriptionEnglish = "Electricity supply for all sections of society",
-        icon = Icons.Rounded.Bolt,
-        backgroundColor = Color(0xFF9C27B0)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಆತ್ಮ ನಿರ್ಭರ ಭಾರತ ಅಭಿಯಾನ",
-        englishTitle = "Atmanirbhar Bharat Abhiyan",
-        descriptionKannada = "ಸ್ವದೇಶಿ ಉತ್ಪನ್ನಗಳನ್ನು ಪ್ರೋತ್ಸಾಹಿಸುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme promoting indigenous products",
-        icon = Icons.Rounded.Build,
-        backgroundColor = Color(0xFF009688)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಜನ ಧನ್ ಯೋಜನೆ",
-        englishTitle = "Pradhan Mantri Jan Dhan Yojana",
-        descriptionKannada = "ಹೆಚ್ಚು ಬ್ಯಾಂಕಿಂಗ್ ಲೆಕ್ಕಗಳನ್ನು ತೆರೆಯಲು ಯೋಜನೆ",
-        descriptionEnglish = "A scheme to open more banking accounts",
-        icon = Icons.Rounded.AccountBalanceWallet,
-        backgroundColor = Color(0xFF795548)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಸ್ವಚ್ಛ ಭಾರತ ಅಭಿಯಾನ",
-        englishTitle = "Swachh Bharat Abhiyan",
-        descriptionKannada = "ಗ್ರಾಮಾಂತರ ಹಾಗೂ ನಗರ ಪ್ರದೇಶಗಳಲ್ಲಿ ಸ್ವಚ್ಛತೆಗಾಗಿ ಅಭಿಯಾನ",
-        descriptionEnglish = "A campaign for cleanliness in rural and urban areas",
-        icon = Icons.Rounded.CleaningServices,
-        backgroundColor = Color(0xFF00BCD4)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಕಿಸಾನ್ ಸಮ್ಮಾನ್ ನಿಧಿ",
-        englishTitle = "Pradhan Mantri Kisan Samman Nidhi",
-        descriptionKannada = "ಕೃಷಿಕರಿಗಾಗಿ ಆಯೋಜನೆಯೆಂದು ನಗದು ಸಹಾಯವನ್ನು ನೀಡುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme providing cash assistance to farmers",
-        icon = Icons.Rounded.Work,
-        backgroundColor = Color(0xFFCDDC39)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಆಯುಷ್ಮಾನ್ ಭಾರತ್ ಯೋಜನೆ",
-        englishTitle = "Ayushman Bharat Yojana",
-        descriptionKannada = "ಆರೋಗ್ಯ ಸೇವೆಗಳ ವಿಸ್ತರಣೆ ಮತ್ತು ಸುಲಭ ಸರಬರಾಜು",
-        descriptionEnglish = "Expansion and easy supply of health services",
-        icon = Icons.Rounded.HealthAndSafety,
-        backgroundColor = Color(0xFF4CAF50)
-    ),
-    ExploreItem(
-        kannadaTitle = "ನಿಶ್ಚಿತ ಧನ ಯೋಜನೆ",
-        englishTitle = "Fixed Deposit Scheme",
-        descriptionKannada = "ನಿಶ್ಚಿತ ಅವಧಿಗೆ ಹಣವನ್ನು ಸಂಗ್ರಹಿಸುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme to accumulate funds for a fixed period",
-        icon = Icons.Rounded.Money,
-        backgroundColor = Color(0xFF2196F3)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ ಯೋಜನೆ",
-        englishTitle = "Space Exploration Program",
-        descriptionKannada = "ಅಂತರಿಕ್ಷದ ಅನ್ವೇಷಣೆಗೆ ಸಂಬಂಧಿಸಿದ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme related to space exploration",
-        icon = Icons.Rounded.AirplanemodeActive,
-        backgroundColor = Color(0xFF673AB7)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಮಹಾರಾಷ್ಟ್ರ ಕೃಷಿ ಯೋಜನೆ",
-        englishTitle = "Maharashtra Agricultural Scheme",
-        descriptionKannada = "ಕೃಷಿ ಕ್ಷೇತ್ರವನ್ನು ಅಭಿವೃದ್ಧಿಪಡಿಸಲು ಯೋಜನೆ",
-        descriptionEnglish = "A scheme for developing the agriculture sector",
-        icon = Icons.Rounded.Agriculture,
-        backgroundColor = Color(0xFF3F51B5)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಗ್ರಾಮೀಣ ವಿನಿಯೋಗ ಯೋಜನೆ",
-        englishTitle = "Rural Development Scheme",
-        descriptionKannada = "ಗ್ರಾಮೀಣ ಪ್ರದೇಶಗಳ ಅಭಿವೃದ್ಧಿಗೆ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme for the development of rural areas",
-        icon = Icons.Rounded.House,
-        backgroundColor = Color(0xFF4CAF50)
-    ),
-    ExploreItem(
-        kannadaTitle = "ನೌಕಾ ಯೋಜನೆ",
-        englishTitle = "Navika Sagar Parikrama",
-        descriptionKannada = "ಮಹಿಳೆಯರನ್ನು ನೌಕಾ ದಾಳಿಯ ಮೂಲಕ ಉಲ್ಲೇಖಿಸುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme to empower women through naval expeditions",
-        icon = Icons.Rounded.Sailing,
-        backgroundColor = Color(0xFFF44336)
-    ),
-    ExploreItem(
-        kannadaTitle = "ಧನಸಹಾಯ ಯೋಜನೆ",
-        englishTitle = "Financial Assistance Scheme",
-        descriptionKannada = "ವಿತ್ತೀಯ ಸಹಾಯವನ್ನು ಪ್ರೋತ್ಸಾಹಿಸುವ ಯೋಜನೆ",
-        descriptionEnglish = "A scheme encouraging financial assistance",
-        icon = Icons.Rounded.AttachMoney,
-        backgroundColor = Color(0xFF00BCD4)
-    )
-)
 
 @Composable
-fun ExploreCard(item: ExploreItem, selectedLanguage: String) {
+fun ExploreScreen(selectedLanguage: String) {
+    var selectedItem by remember { mutableStateOf<ExploreItem?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp)
+        ) {
+            // Enhanced Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = if (selectedLanguage == "ಕನ್ನಡ") "ಅನ್ವೇಷಿಸಿ" else "Explore Schemes",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                // Optional: Add a filter or search icon here
+                Icon(
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = "Search Schemes",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // LazyColumn with enhanced spacing and scrolling
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                items(exploreItems) { item ->
+                    ExploreCard(
+                        item = item,
+                        selectedLanguage = selectedLanguage,
+                        onCardClick = { selectedItem = it }
+                    )
+                }
+            }
+        }
+
+        // Popup for selected item
+        selectedItem?.let { item ->
+            PolicyDetailsPopup(
+                item = item,
+                selectedLanguage = selectedLanguage,
+                onDismiss = { selectedItem = null }
+            )
+        }
+    }
+}
+
+@Composable
+fun ExploreCard(
+    item: ExploreItem,
+    selectedLanguage: String,
+    onCardClick: (ExploreItem) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable { /* Handle click */ },
+            .clickable { onCardClick(item) },
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(containerColor = item.backgroundColor)
     ) {
@@ -819,7 +742,294 @@ fun ExploreCard(item: ExploreItem, selectedLanguage: String) {
     }
 }
 
+@Composable
+fun PolicyDetailsPopup(
+    item: ExploreItem,
+    selectedLanguage: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .heightIn(min = 300.dp, max = 600.dp)
+                .clip(RoundedCornerShape(16.dp)),
+            elevation = CardDefaults.cardElevation(8.dp),
+            colors = CardDefaults.cardColors(containerColor = item.backgroundColor)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // Header with Title and Close Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (selectedLanguage == "ಕನ್ನಡ") item.kannadaTitle else item.englishTitle,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Close",
+                            tint = Color.White
+                        )
+                    }
+                }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Full Description
+                Text(
+                    text = if (selectedLanguage == "ಕನ್ನಡ")
+                        (item.fullDescriptionKannada ?: item.descriptionKannada)
+                    else
+                        (item.fullDescriptionEnglish ?: item.descriptionEnglish),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Additional Info Section
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Website Link Button
+                    item.websiteLink?.let { link ->
+                        Button(
+                            onClick = { /* Implement link opening logic */ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White.copy(alpha = 0.2f)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Language,
+                                contentDescription = "Website"
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Website")
+                        }
+                    }
+
+                    // Contact Button
+                    item.contactNumber?.let { contact ->
+                        Button(
+                            onClick = { /* Implement contact logic */ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White.copy(alpha = 0.2f)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Call,
+                                contentDescription = "Contact"
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Contact")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Update the exploreItems list with additional details
+val exploreItems = listOf(
+    ExploreItem(
+        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಆವಾಸ್ ಯೋಜನೆ",
+        englishTitle = "Pradhan Mantri Awas Yojana",
+        descriptionKannada = "ಎಲ್ಲಾ ಕುಟುಂಬಗಳಿಗೆ ಮನೆ ಒದಗಿಸುವ ಯೋಜನೆ",
+        descriptionEnglish = "A scheme to provide housing for all families",
+        icon = Icons.Rounded.House,
+        backgroundColor = Color(0xFF3F51B5),
+        fullDescriptionKannada = "ಪ್ರಧಾನಮಂತ್ರಿ ಆವಾಸ್ ಯೋಜನೆ ಎಲ್ಲಾ ಕುಟುಂಬಗಳಿಗೆ ಸಾಮರ್ಥ್ಯಕ್ಕೆ ಅನುಗುಣವಾಗಿ ಮನೆ ಒದಗಿಸುವ ಉದ್ದೇಶವನ್ನು ಹೊಂದಿದೆ.",
+        fullDescriptionEnglish = "Pradhan Mantri Awas Yojana aims to provide housing to all families according to their capacity and needs.",
+        websiteLink = "https://pmay.gov.in/",
+        contactNumber = "1800-11-6139",
+        eligibilityCriteria = "Low and middle-income families without owning a pucca house",
+        benefitDetails = "Financial assistance for house construction or renovation"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಸ್ವ-ನಿಧಿ ಯೋಜನೆ",
+        englishTitle = "PM SVANidhi Scheme",
+        descriptionKannada = "ಚಿಕ್ಕ ವ್ಯಾಪಾರಿಗಳಿಗೆ ಸಾಲ",
+        descriptionEnglish = "Loan for street vendors",
+        icon = Icons.Rounded.StoreMallDirectory,
+        backgroundColor = Color(0xFF009688),
+        fullDescriptionKannada = "ನಗರ ಪ್ರದೇಶಗಳ ರಸ್ತೆ ವ್ಯಾಪಾರಿಗಳಿಗೆ ಸಣ್ಣ ಸಾಲ ಒದಗಿಸಿ ಅವರ ಆರ್ಥಿಕ ಸಬಲೀಕರಣಕ್ಕೆ ಕೊಡುಗೆ ನೀಡುವ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "A scheme providing small loans to street vendors in urban areas to support their economic empowerment.",
+        websiteLink = "https://msme.gov.in/",
+        contactNumber = "1800-180-0018",
+        eligibilityCriteria = "Street vendors with valid identity proof and operating in urban areas",
+        benefitDetails = "Collateral-free loan up to ₹10,000 with digital transactions incentives"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಮತ್ಸ್ಯ ಸಂಪಾಳನಾ ಯೋಜನೆ",
+        englishTitle = "Pradhan Mantri Matsya Sampada Yojana",
+        descriptionKannada = "ಮೀನು ಸಂಸ್ಕರಣಾ ಮತ್ತು ಮೀನು ಸಾಗಣೆ ಯೋಜನೆ",
+        descriptionEnglish = "Fisheries processing and transportation scheme",
+        icon = Icons.Rounded.Sailing,
+        backgroundColor = Color(0xFFF44336),
+        fullDescriptionKannada = "ಮೀನಿನ ಉತ್ಪಾದನೆ, ಸಂಸ್ಕರಣೆ, ಮಾರುಕಟ್ಟೆ ಮತ್ತು ಮೀನು ಸಾಗಣೆಯನ್ನು ಸಮಗ್ರವಾಗಿ ಬೆಂಬಲಿಸುವ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "A comprehensive scheme supporting fish production, processing, marketing, and transportation.",
+        websiteLink = "https://fisheries.gov.in/",
+        contactNumber = "011-23384918",
+        eligibilityCriteria = "Fishers, fish farmers, self-help groups, cooperatives",
+        benefitDetails = "Financial assistance for infrastructure, technology, and market linkages"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಸ್ಟಾರ್ಟ್-ಅಪ್ ಇಂಡಿಯಾ ಯೋಜನೆ",
+        englishTitle = "Startup India Scheme",
+        descriptionKannada = "ಉದ್ಯಮಿಗಳಿಗೆ ಬೆಂಬಲ",
+        descriptionEnglish = "Support for entrepreneurs",
+        icon = Icons.Rounded.Business,
+        backgroundColor = Color(0xFF795548),
+        fullDescriptionKannada = "ಹೊಸ ಉದ್ಯಮಿಗಳಿಗೆ ಹಣಕಾಸು, ಸಲಹೆ ಮತ್ತು ಇನ್ಕ್ಯೂಬೇಷನ್ ಬೆಂಬಲ ಒದಗಿಸಿ ಉದ್ಯಮಶೀಲತೆಯನ್ನು ಉತ್ತೇಜಿಸುವ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "A scheme promoting entrepreneurship by providing financial, advisory, and incubation support to new startups.",
+        websiteLink = "https://www.startupindia.gov.in/",
+        contactNumber = "1800-111-025",
+        eligibilityCriteria = "Registered startups recognized by DPIIT",
+        benefitDetails = "Tax exemptions, funding support, and easier compliance"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಕೌಶಲ್ಯ ವಿಕಾಸ್ ಯೋಜನೆ",
+        englishTitle = "Pradhan Mantri Kaushal Vikas Yojana",
+        descriptionKannada = "ಯುವಕರಿಗೆ ಕೌಶಲ್ಯ ತರಬೇತಿ",
+        descriptionEnglish = "Skill training for youth",
+        icon = Icons.Rounded.Work,
+        backgroundColor = Color(0xFF9C27B0),
+        fullDescriptionKannada = "ಯುವಕರಿಗೆ ರೋಜಗಾರ ಸಾಧ್ಯವಾಗುವಂತೆ ವೃತ್ತಿಪರ ಕೌಶಲ್ಯ ತರಬೇತಿ ಒದಗಿಸುವ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "A scheme providing professional skill training to youth to enhance their employability.",
+        websiteLink = "https://pmkvyofficial.org/",
+        contactNumber = "011-23370704",
+        eligibilityCriteria = "Unemployed youth aged 15-35 years",
+        benefitDetails = "Free skill training, certification, and job placement assistance"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಅಯುಷ್ಮಾನ್ ಭಾರತ್ ಆರೋಗ್ಯ ಯೋಜನೆ",
+        englishTitle = "Ayushman Bharat Yojana",
+        descriptionKannada = "ಉಚಿತ ಆರೋಗ್ಯ ವಿಮೆ",
+        descriptionEnglish = "Free health insurance",
+        icon = Icons.Rounded.HealthAndSafety,
+        backgroundColor = Color(0xFF4CAF50),
+        fullDescriptionKannada = "ದೇಶದ ಅತಿ ಕಡಿಮೆ ಆದಾಯದ ಕುಟುಂಬಗಳಿಗೆ ₹5 ಲಕ್ಷ ಮೌಲ್ಯದ ಉಚಿತ ಆರೋಗ್ಯ ವಿಮೆ.",
+        fullDescriptionEnglish = "Free health insurance coverage of ₹5 lakh for the poorest families in the country.",
+        websiteLink = "https://pmjay.gov.in/",
+        contactNumber = "18008894404",
+        eligibilityCriteria = "Families identified in the Socio-Economic Caste Census",
+        benefitDetails = "Cashless treatment in empaneled hospitals across India"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಕಿಸಾನ್ ಸಮ್ಮಾನ್ ನಿಧಿ",
+        englishTitle = "PM Kisan Samman Nidhi",
+        descriptionKannada = "ಕೃಷಿಕರಿಗೆ ನಗದು ಬೆಂಬಲ",
+        descriptionEnglish = "Cash support for farmers",
+        icon = Icons.Rounded.Agriculture,
+        backgroundColor = Color(0xFF2196F3),
+        fullDescriptionKannada = "ಚಿಕ್ಕ ಮತ್ತು ಅಲ್ಪ ಭೂಸ್ವಾಮ್ಯ ಕೃಷಿಕರಿಗೆ ₹6,000 ವಾರ್ಷಿಕ ಹಣಕಾಸು ಬೆಂಬಲ.",
+        fullDescriptionEnglish = "Annual financial assistance of ₹6,000 to small and marginal farmers.",
+        websiteLink = "https://pmkisan.gov.in/",
+        contactNumber = "011-23382129",
+        eligibilityCriteria = "Landholding farmers with less than 2 hectares of land",
+        benefitDetails = "Direct benefit transfer of ₹2,000 in three equal installments"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಮುದ್ರಾ ಯೋಜನೆ",
+        englishTitle = "Mudra Yojana",
+        descriptionKannada = "ಸಣ್ಣ ವ್ಯಾಪಾರಗಳಿಗೆ ಸಾಲ",
+        descriptionEnglish = "Loan for small businesses",
+        icon = Icons.Rounded.CreditCard,
+        backgroundColor = Color(0xFFFF9800),
+        fullDescriptionKannada = "ಸಣ್ಣ ಮತ್ತು ಸೂಕ್ಷ್ಮ ಉದ್ಯಮಗಳಿಗೆ ಸಾಲ ಒದಗಿಸುವ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "Scheme providing loans to micro and small enterprises.",
+        websiteLink = "https://mudra.org.in/",
+        contactNumber = "1800-120-3191",
+        eligibilityCriteria = "Non-corporate, non-farm small/micro enterprises",
+        benefitDetails = "Loans categorized as Shishu, Kishor, and Tarun based on business stage"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಡಿಜಿಟಲ್ ಇಂಡಿಯಾ ಯೋಜನೆ",
+        englishTitle = "Digital India Programme",
+        descriptionKannada = "ಡಿಜಿಟಲ್ ಸಾಮರ್ಥ್ಯ ಬೆಂಬಲ",
+        descriptionEnglish = "Digital empowerment initiative",
+        icon = Icons.Rounded.Work,
+        backgroundColor = Color(0xFF673AB7),
+        fullDescriptionKannada = "ಡಿಜಿಟಲ್ ಸಾಮರ್ಥ್ಯ ಮೂಲಕ ಸಮಾಜದ ಎಲ್ಲಾ ವರ್ಗಗಳಿಗೆ ಡಿಜಿಟಲ್ ಸೇವೆಗಳನ್ನು ಒದಗಿಸುವ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "A comprehensive initiative to provide digital services to all sections of society through digital empowerment.",
+        websiteLink = "https://digitalindia.gov.in/",
+        contactNumber = "011-24301856",
+        eligibilityCriteria = "Open to all citizens, focus on rural and marginalized communities",
+        benefitDetails = "Digital literacy, online services, and technology infrastructure"
+    ),
+    ExploreItem(
+        kannadaTitle = "ನಾಳೆ ಸ್ಕಾಲರ್ ಯೋಜನೆ",
+        englishTitle = "Naale Scholarship Scheme",
+        descriptionKannada = "ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ ಶಿಕ್ಷಣ ಬೆಂಬಲ",
+        descriptionEnglish = "Scholarship for students",
+        icon = Icons.Rounded.School,
+        backgroundColor = Color(0xFF00BCD4),
+        fullDescriptionKannada = "ಸಾಮಾಜಿಕ ಮತ್ತು ಆರ್ಥಿಕವಾಗಿ ಹಿಂದುಳಿದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ ಶೈಕ್ಷಣಿಕ ಬೆಂಬಲ ಒದಗಿಸುವ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "A scholarship scheme providing educational support to socially and economically backward students.",
+        websiteLink = "https://scholarships.gov.in/",
+        contactNumber = "1800-208-8900",
+        eligibilityCriteria = "Students from SC/ST/OBC/Minority communities with good academic performance",
+        benefitDetails = "Financial assistance for higher education, tuition fees, and study materials"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಸ್ವಚ್ಛ ಭಾರತ್ ಮಿಷನ್",
+        englishTitle = "Swachh Bharat Mission",
+        descriptionKannada = "ನಮ್ಮ ಭಾರತವನ್ನು ಶುಚಿಯಾಗಿಸೋಣ",
+        descriptionEnglish = "Clean India Mission",
+        icon = Icons.Rounded.CleaningServices,
+        backgroundColor = Color(0xFF8BC34A),
+        fullDescriptionKannada = "ಗ್ರಾಮೀಣ ಮತ್ತು ನಗರ ಪ್ರದೇಶಗಳಲ್ಲಿ ಸ್ವಚ್ಛತಾ ಜಾಗೃತಿ ಮತ್ತು ಅಭಿಯಾನ.",
+        fullDescriptionEnglish = "A comprehensive cleanliness campaign in rural and urban areas to promote hygiene and sanitation.",
+        websiteLink = "https://swachhbharatmission.gov.in/",
+        contactNumber = "011-23073254",
+        eligibilityCriteria = "All citizens, local bodies, and community organizations",
+        benefitDetails = "Funding for sanitation infrastructure, toilet construction, and waste management"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಅಟಲ್ ಪೆನ್ಷನ್ ಯೋಜನೆ",
+        englishTitle = "Atal Pension Yojana",
+        descriptionKannada = "ವಯೋಮಾನದ ಸಾಮಾಜಿಕ ಭದ್ರತಾ ಯೋಜನೆ",
+        descriptionEnglish = "Social security pension scheme",
+        icon = Icons.Rounded.Help,
+        backgroundColor = Color(0xFFFF5722),
+        fullDescriptionKannada = "ಅಸಂಘಟಿತ ವಲಯದ ಕಾರ್ಮಿಕರಿಗಾಗಿ ಪೆನ್ಷನ್ ಯೋಜನೆ.",
+        fullDescriptionEnglish = "A pension scheme designed for workers in the unorganized sector.",
+        websiteLink = "https://www.npscentral.gov.in/",
+        contactNumber = "1800-222-080",
+        eligibilityCriteria = "Individuals aged 18-40 years, not covered under any statutory social security scheme",
+        benefitDetails = "Guaranteed minimum monthly pension between ₹1,000 to ₹5,000"
+    ),
+    ExploreItem(
+        kannadaTitle = "ಪ್ರಧಾನಮಂತ್ರಿ ಮಾತೃ ವಂದನಾ ಯೋಜನೆ",
+        englishTitle = "Pradhan Mantri Matru Vandana Yojana",
+        descriptionKannada = "ಗರ್ಭಿಣಿ ಮಹಿಳೆಯರಿಗೆ ಆರ್ಥಿಕ ಬೆಂಬಲ",
+        descriptionEnglish = "Financial support for pregnant women",
+        icon = Icons.Rounded.PregnantWoman,
+        backgroundColor = Color(0xFF9C27B0),
+        fullDescriptionKannada = "ಗರ್ಭಿಣಿ ಮಹಿಳೆಯರಿಗೆ ಹಗಲಿನ ಆಹಾರ ಮತ್ತು ಆರೋಗ್ಯ ಸೇವೆಗಳಿಗಾಗಿ ಹಣಕಾಸು ಬೆಂಬಲ.",
+        fullDescriptionEnglish = "Financial assistance for pregnant women for nutrition and health services.",
+        websiteLink = "https://wcd.nic.in/",
+        contactNumber = "011-23386423",
+        eligibilityCriteria = "Pregnant women of 19 years and above, working in unorganized sector",
+        benefitDetails = "Direct cash transfer of ₹5,000 for health and nutrition"
+    )
+)
 data class ChatMessage(val text: String, val isUser: Boolean)
 @Composable
 fun HelpScreen(selectedLanguage: String) {
@@ -1123,72 +1333,245 @@ fun fetchChatbotResponse(userMessage: String, onResponse: (String?) -> Unit) {
 
 
 
-data class Blog(val title: String, val content: String, val author: String, val date: String)
+
+
+// Data class remains the same
+
+data class Blog(
+    val title: String,
+    val content: String,
+    val author: String,
+    val date: String,
+    val imageResId: Int // Add image resource ID
+)
 
 @Composable
 fun CommunityPage() {
-    val blogs = listOf(
+    var blogs by remember { mutableStateOf(listOf(
         Blog(
             title = "How Solar Energy Is Helping Rural Communities",
             content = "Solar energy is being used to power homes and schools in rural areas, providing electricity and improving quality of life. This sustainable solution has reduced reliance on expensive grid power, and families are now able to work and study after dark.",
             author = "Ayush Ratan",
-            date = "January 10, 2025"
+            date = "January 10, 2025",
+            imageResId = R.drawable.so // Replace with actual image resource
         ),
         Blog(
             title = "Affordable Healthcare for the Underserved",
             content = "Mobile health clinics are being deployed in remote villages, offering free checkups, vaccines, and general health services. These efforts are making healthcare accessible to families that would otherwise have no means of getting medical attention.",
             author = "Ayush Ratan",
-            date = "December 15, 2024"
+            date = "December 15, 2024",
+            imageResId = R.drawable.he // Replace with actual image resource
         ),
         Blog(
             title = "Microfinance: Empowering Women in Poverty",
             content = "Microloans are helping women in poverty-stricken areas start small businesses, leading to financial independence and empowerment. This initiative is improving living conditions for entire communities.",
             author = "Ayush Ratan",
-            date = "November 22, 2024"
+            date = "November 22, 2024",
+            imageResId = R.drawable.wo // Replace with actual image resource
         )
-    )
+    ))}
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    var showAddBlogDialog by remember { mutableStateOf(false) }
 
-        // Display each blog
-        blogs.forEach { blog ->
-            BlogCard(blog)
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(blogs) { blog ->
+                EnhancedBlogCard(blog)
+            }
+        }
+
+        FloatingActionButton(
+            onClick = { showAddBlogDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = "Add Blog")
+        }
+
+        if (showAddBlogDialog) {
+            AddBlogDialog(
+                onDismiss = { showAddBlogDialog = false },
+                onBlogAdded = { newBlog ->
+                    blogs = blogs + newBlog
+                    showAddBlogDialog = false
+                }
+            )
         }
     }
 }
 
-
 @Composable
-fun BlogCard(blog: Blog) {
+fun EnhancedBlogCard(blog: Blog) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        // Correct way to set the elevation
+            .height(250.dp)
+            .clip(RoundedCornerShape(16.dp)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = blog.title,
-                style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "By ${blog.author} - ${blog.date}",
-                style = TextStyle(fontSize = 12.sp, color = Color.Gray),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = blog.content,
-                style = TextStyle(fontSize = 16.sp),
-                modifier = Modifier.padding(bottom = 8.dp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background Image
+            Image(
+                painter = painterResource(id = blog.imageResId),
+                contentDescription = blog.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
 
-            // Optional: Include an image to make the blog look richer
-            Image(
-                painter = painterResource(id = R.drawable.dummy_image), // Replace with your image resource
-                contentDescription = "Blog Image",
-                modifier = Modifier.fillMaxWidth().height(200.dp)
+            // Gradient Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.7f)
+                            ),
+                            startY = 100f
+                        )
+                    )
             )
+
+            // Content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                Text(
+                    text = blog.title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "By ${blog.author} - ${blog.date}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color.White.copy(alpha = 0.8f)
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AddBlogDialog(
+    onDismiss: () -> Unit,
+    onBlogAdded: (Blog) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var imageResId by remember { mutableStateOf(R.drawable.dummy_image) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp)),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Add New Blog",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Image Selection
+                Image(
+                    painter = painterResource(id = imageResId),
+                    contentDescription = "Selected Blog Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Image Selection Buttons (You'd implement actual image picking logic)
+                Button(
+                    onClick = {
+                        // Implement image selection
+                        // This is a placeholder - replace with actual image picker
+                        imageResId = when(imageResId) {
+                            R.drawable.so -> R.drawable.so
+                            R.drawable.so -> R.drawable.he
+                            else -> R.drawable.dummy_image
+                        }
+                    },
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    Text("Change Image")
+                }
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Blog Title") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text("Blog Content") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(bottom = 16.dp),
+                    maxLines = 5
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            if (title.isNotBlank() && content.isNotBlank()) {
+                                onBlogAdded(
+                                    Blog(
+                                        title = title,
+                                        content = content,
+                                        author = "Current User",
+                                        date = java.time.LocalDate.now().toString(),
+                                        imageResId = imageResId
+                                    )
+                                )
+                            }
+                        }
+                    ) {
+                        Text("Add Blog")
+                    }
+                }
+            }
         }
     }
 }
@@ -1231,7 +1614,12 @@ fun HomeContent(selectedLanguage: String) {
         }
     }
 }
-
+val darkPrimaryColor = Color(0xFF1E1E2E)
+val darkSecondaryColor = Color(0xFF2C2C3E)
+val darkAccentColor = Color(0xFF6A5ACD)
+val darkHighlightColor = Color(0xFF4B0082)
+val darkTextColor = Color(0xFFE6E6FA)
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WelcomeCard(language: String) {
     Card(
@@ -1239,7 +1627,10 @@ fun WelcomeCard(language: String) {
             .fillMaxWidth()
             .padding(16.dp),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = darkSecondaryColor
+        )
     ) {
         Box(
             modifier = Modifier
@@ -1247,16 +1638,23 @@ fun WelcomeCard(language: String) {
                 .background(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.tertiary
+                            darkAccentColor,
+                            darkHighlightColor
                         )
                     )
                 )
                 .padding(24.dp)
         ) {
             Column {
+                // Add dynamic greeting based on time of day
+                val greeting = when (LocalTime.now().hour) {
+                    in 0..11 -> if (language == "ಕನ್ನಡ") "ಶುಭ ಬೆಳಗಿನ ವಂದನೆಗಳು!" else "Good Morning!"
+                    in 12..16 -> if (language == "ಕನ್ನಡ") "ಶುಭ ಮಧ್ಯಾಹ್ನ!" else "Good Afternoon!"
+                    else -> if (language == "ಕನ್ನಡ") "ಶುಭ ಸಂಜೆ!" else "Good Evening!"
+                }
+
                 Text(
-                    text = if (language == "ಕನ್ನಡ") "ನಮಸ್ಕಾರ!" else "Welcome!",
+                    text = greeting,
                     style = MaterialTheme.typography.headlineLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
@@ -1264,9 +1662,9 @@ fun WelcomeCard(language: String) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = if (language == "ಕನ್ನಡ")
-                        "ಸಮುದಾಯ ನೆಕ್ಸಸ್‌ಗೆ ಸ್ವಾಗತ"
+                        "ಸಮುದಾಯ ನೆಕ್ಸಸ್‌ನಲ್ಲಿ ಸ್ವಾಗತ - ನಿಮ್ಮ ಸಮಗ್ರ ಸಹಾಯ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್"
                     else
-                        "Welcome to Community Nexus",
+                        "Welcome to Community Nexus - Your Comprehensive Support Platform",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.White.copy(alpha = 0.9f)
                 )

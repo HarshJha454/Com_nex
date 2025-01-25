@@ -5,9 +5,12 @@ package com.example.com_nex
 import android.Manifest.permission.RECORD_AUDIO
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -126,6 +129,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -136,6 +140,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -147,6 +152,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -157,7 +163,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import coil.compose.rememberImagePainter
 import com.example.com_nex.ui.theme.Com_nexTheme
+import com.google.android.gms.location.LocationServices
 import firebase.com.protolitewrapper.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -168,9 +177,13 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONException
 import org.json.JSONObject
+import java.io.IOException
+import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.math.roundToInt
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1561,7 +1574,7 @@ fun AddBlogDialog(
                                         title = title,
                                         content = content,
                                         author = "Current User",
-                                        date = java.time.LocalDate.now().toString(),
+                                        date = LocalDate.now().toString(),
                                         imageResId = imageResId
                                     )
                                 )
@@ -1603,22 +1616,139 @@ fun HomeContent(selectedLanguage: String) {
             item {
                 EmergencyServicesSection(selectedLanguage)
             }
-
+            item {
+                YouTubeSection(selectedLanguage)
+            }
             item {
                 QuickActionsGrid(selectedLanguage)
             }
 
+
             item {
                 CommunityUpdates(selectedLanguage)
+            }
+
+            // New YouTube section
+
+        }
+    }
+}
+
+data class YouTubeVideo(
+    val id: String,
+    val title: String,
+    val thumbnailUrl: String,
+    val channelName: String = "PM Narendra Modi"
+)
+
+// List of Mankibaat video links (You may want to replace these with actual video IDs)
+val mankibaatVideos = listOf(
+    YouTubeVideo(
+        id = "WrSPtjpiRrE", // Replace with actual video ID
+        title = "Mannki Baat Episode 1",
+        thumbnailUrl = "https://www.prabhatkhabar.com/wp-content/uploads/2024/12/PM-Modi-Mann-Ki-Baat-Live.jpg"
+    ),
+    YouTubeVideo(
+        id = "Di-GyUIU72U", // Replace with actual video ID
+        title = "Mannki Baat Episode 2",
+        thumbnailUrl = "https://feeds.abplive.com/onecms/images/uploaded-images/2022/05/29/bdae8485d3a205862257b7e98f5174aa_original.jpg?impolicy=abp_cdn&imwidth=1200&height=675"
+    ),
+    // Add more videos as needed
+)
+
+@Composable
+fun YouTubeSection(language: String) {
+    val context = LocalContext.current // Get the current context
+
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = if (language == "ಕನ್ನಡ") "ಮನ್ ಕಿ ಬಾತ್ ವಿಡಿಯೋ " else "Mann Ki Baat Videos",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(mankibaatVideos) { video ->
+                YouTubeVideoCard(
+                    video = video,
+                    language = language,
+                    onVideoClick = { videoId ->
+                        // Open YouTube video
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://www.youtube.com/watch?v=$videoId")
+                        )
+                        context.startActivity(intent) // Use context to start the activity
+                    }
+                )
             }
         }
     }
 }
+
+
+
+@Composable
+fun YouTubeVideoCard(
+    video: YouTubeVideo,
+    language: String,
+    onVideoClick: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(250.dp)
+            .clickable { onVideoClick(video.id) },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = darkSecondaryColor
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column {
+            // Thumbnail
+            AsyncImage(
+                model = video.thumbnailUrl,
+                contentDescription = video.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            // Video Details
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = darkTextColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = video.channelName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = darkTextColor.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
 val darkPrimaryColor = Color(0xFF1E1E2E)
 val darkSecondaryColor = Color(0xFF2C2C3E)
 val darkAccentColor = Color(0xFF6A5ACD)
 val darkHighlightColor = Color(0xFF4B0082)
 val darkTextColor = Color(0xFFE6E6FA)
+
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WelcomeCard(language: String) {
@@ -1735,34 +1865,72 @@ data class EmergencyService(
     val englishTitle: String,
     val icon: ImageVector,
     val color: Color,
-    val phoneNumber: String // New field
+    val phoneNumber: String,
+    val description: String
 )
 
 val emergencyServices = listOf(
     EmergencyService(
         kannadaTitle = "ಪೊಲೀಸರು",
-        englishTitle = "Police",
+        englishTitle = "Emergency Police",
         icon = Icons.Default.Shield,
-        color = Color(0xFF1A237E) ,
-        phoneNumber = "100"
+        color = Color(0xFF1A237E),
+        phoneNumber = "100",
+        description = "Immediate Law Enforcement Support"
     ),
     EmergencyService(
         kannadaTitle = "ಆಂಬ್ಯುಲೆನ್ಸ್",
-        englishTitle = "Ambulance",
+        englishTitle = "Medical Response",
         icon = Icons.Default.LocalHospital,
         color = Color(0xFFC62828),
-        phoneNumber = "108"
+        phoneNumber = "108",
+        description = "Urgent Medical Assistance"
     ),
     EmergencyService(
         kannadaTitle = "ಅಗ್ನಿಶಾಮಕ",
-        englishTitle = "Fire Brigade",
+        englishTitle = "Fire Rescue",
         icon = Icons.Default.Fireplace,
         color = Color(0xFFE65100),
-        phoneNumber = "101"
+        phoneNumber = "101",
+        description = "Immediate Fire Services"
     )
-    // Add more services as needed
 )
 
+// Enhanced Quick Actions
+val quickActions = listOf(
+    QuickAction(
+        "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
+        "Government Support",
+        "ವಸತಿ ನೆರವು ಯೋಜನೆಗಳು",
+        "Comprehensive Welfare Schemes",
+        Icons.Rounded.AccountBalance,
+        Color(0xFF1565C0)
+    ),
+    QuickAction(
+        "ಧ್ವನಿ ಸಹಾಯಕ",
+        "AI Assistant",
+        "ಧ್ವನಿ ಆಧಾರಿತ ಬೆಂಬಲ",
+        "Intelligent Voice Support",
+        Icons.Rounded.KeyboardVoice,
+        Color(0xFF2E7D32)
+    ),
+    QuickAction(
+        "ಸಮುದಾಯ ಚರ್ಚೆ",
+        "Community Hub",
+        "ಸಮುದಾಯದ ಸದಸ್ಯರೊಂದಿಗೆ ಸಂಪರ̥ಕ",
+        "Connect & Collaborate",
+        Icons.Rounded.Forum,
+        Color(0xFF6A1B9A)
+    ),
+    QuickAction(
+        "ಕೌಶಲ್ಯ ತರಬೇತಿ",
+        "Skill Development",
+        "ಉದ್ಯೋಗ ತರಬೇತಿ ಕಾರ್ಯಕ್ರಮಗಳು",
+        "Professional Growth Programs",
+        Icons.Rounded.School,
+        Color(0xFFD84315)
+    )
+)
 data class QuickAction(
     val kannadaTitle: String,
     val englishTitle: String,
@@ -1772,40 +1940,6 @@ data class QuickAction(
     val backgroundColor: Color
 )
 
-val quickActions = listOf(
-    QuickAction(
-        "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
-        "Government Schemes",
-        "ವಸತಿ ನೆರವು ಯೋಜನೆಗಳು",
-        "Housing assistance schemes",
-        Icons.Rounded.AccountBalance,
-        Color(0xFF1565C0)
-    ),
-    QuickAction(
-        "ಧ್ವನಿ ಸಹಾಯಕ",
-        "Voice Assistant",
-        "ಧ್ವನಿ ಆಧಾರಿತ ಬೆಂಬಲ",
-        "Voice-based support",
-        Icons.Rounded.KeyboardVoice,
-        Color(0xFF2E7D32)
-    ),
-    QuickAction(
-        "ಸಮುದಾಯ ಚರ್ಚೆ",
-        "Community Discussion",
-        "ಸಮುದಾಯದ ಸದಸ್ಯರೊಂದಿಗೆ ಸಂಪರ್ಕ",
-        "Connect with community",
-        Icons.Rounded.Forum,
-        Color(0xFF6A1B9A)
-    ),
-    QuickAction(
-        "ಕೌಶಲ್ಯ ತರಬೇತಿ",
-        "Skill Training",
-        "ಉದ್ಯೋಗ ತರಬೇತಿ ಕಾರ್ಯಕ್ರಮಗಳು",
-        "Job training programs",
-        Icons.Rounded.School,
-        Color(0xFFD84315)
-    )
-)
 
 @Composable
 fun LanguageSelector(
@@ -1831,14 +1965,8 @@ fun LanguageSelector(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text("ಕನ್ನಡ") },
-                onClick = {
-                    onLanguageSelected("ಕನ್ನಡ")
-                    expanded = false
-                }
-            )
+        )
+        {
             DropdownMenuItem(
                 text = { Text("English") },
                 onClick = {
@@ -1846,6 +1974,14 @@ fun LanguageSelector(
                     expanded = false
                 }
             )
+            DropdownMenuItem(
+                text = { Text("ಕನ್ನಡ") },
+                onClick = {
+                    onLanguageSelected("ಕನ್ನಡ")
+                    expanded = false
+                }
+            )
+
         }
     }
 }
@@ -1854,19 +1990,35 @@ fun LanguageSelector(
 @Composable
 fun EmergencyServiceCard(service: EmergencyService, language: String) {
     val context = LocalContext.current
+    var isPressed by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
-            .width(160.dp)
-            .clickable {
-                // Launch dialer intent with the specific phone number
-                val intent = Intent(Intent.ACTION_DIAL).apply {
-                    data = Uri.parse("tel:${service.phoneNumber}")
+            .width(180.dp)
+            .graphicsLayer {
+                scaleX = if (isPressed) 0.95f else 1f
+                scaleY = if (isPressed) 0.95f else 1f
+            }
+            .clickable(
+                onClick = {
+                    // Temporary visual feedback
+                    isPressed = true
+                    // Launch dialer intent
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:${service.phoneNumber}")
+                    }
+                    context.startActivity(intent)
+
+                    // Reset press state
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        isPressed = false
+                    }, 100)
                 }
-                context.startActivity(intent)
-            },
+            ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = service.color)
+        colors = CardDefaults.cardColors(
+            containerColor = service.color.copy(alpha = 0.9f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -1876,7 +2028,7 @@ fun EmergencyServiceCard(service: EmergencyService, language: String) {
             Icon(
                 imageVector = service.icon,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(40.dp),
                 tint = Color.White
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -1886,17 +2038,37 @@ fun EmergencyServiceCard(service: EmergencyService, language: String) {
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
+            Text(
+                text = if (language == "ಕನ್ನಡ")
+                    "ಸಂಪರ್ಕ ${service.phoneNumber}"
+                else
+                    "Contact ${service.phoneNumber}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.7f)
+            )
         }
     }
 }
 
-
 @Composable
 fun QuickActionCard(action: QuickAction, language: String) {
+    var isPressed by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Handle quick action click */ },
+            .graphicsLayer {
+                scaleX = if (isPressed) 0.95f else 1f
+                scaleY = if (isPressed) 0.95f else 1f
+            }
+            .clickable {
+                // Add your click handling logic
+                isPressed = true
+                // Reset press state
+                Handler(Looper.getMainLooper()).postDelayed({
+                    isPressed = false
+                }, 100)
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = action.backgroundColor)
     ) {
@@ -1906,7 +2078,7 @@ fun QuickActionCard(action: QuickAction, language: String) {
             Icon(
                 imageVector = action.icon,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(32.dp),
                 tint = Color.White
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -1925,38 +2097,102 @@ fun QuickActionCard(action: QuickAction, language: String) {
     }
 }
 
+
+
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun CommunityUpdates(language: String) {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp)
-    ) {
-        Text(
-            text = if (language == "ಕನ್ನಡ") "ಸಮುದಾಯ ಅಪ್‌ಡೇಟ್‌ಗಳು" else "Community Updates",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+    var location by remember { mutableStateOf<Location?>(null) }
+    var news by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
+    val context = LocalContext.current
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
-        // Sample updates
-        UpdateCard(
-            title = if (language == "ಕನ್ನಡ")
-                "ಹೊಸ ಆರೋಗ್ಯ ಶಿಬಿರ"
-            else
-                "New Health Camp",
-            time = if (language == "ಕನ್ನಡ") "2 ಗಂಟೆಗಳ ಹಿಂದೆ" else "2 hours ago"
-        )
-        UpdateCard(
-            title = if (language == "ಕನ್ನಡ")
-                "ಸಮುದಾಯ ಸಭೆ"
-            else
-                "Community Meeting",
-            time = if (language == "ಕನ್ನಡ") "1 ದಿನದ ಹಿಂದೆ" else "1 day ago"
-        )
+    // Request location permission and get the current location
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { granted ->
+            if (granted) {
+                fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                    if (loc != null) {
+                        location = loc
+                        Log.d("Location", "Location: ${loc.latitude}, ${loc.longitude}")
+                        fetchNewsBasedOnLocation(loc) { fetchedNews ->
+                            news = fetchedNews
+                        }
+                    } else {
+                        Log.d("Location", "Location is null, unable to fetch news")
+                    }
+                }
+            }
+        }
+    )
+
+    // Check if location permission is granted
+    LaunchedEffect(true) {
+        if (ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                if (loc != null) {
+                    location = loc
+                    Log.d("Location", "Location: ${loc.latitude}, ${loc.longitude}")
+                    fetchNewsBasedOnLocation(loc) { fetchedNews ->
+                        news = fetchedNews
+                    }
+                } else {
+                    Log.d("Location", "Location is null, unable to fetch news")
+                }
+            }
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .height(200.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Header Section
+        item {
+            Text(
+                text = if (language == "ಕನ್ನಡ") "ಸಮುದಾಯ ಅಪ್‌ಡೇಟ್‌ಗಳು" else "Community Updates",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // News Items or Placeholder
+        if (news.isNotEmpty()) {
+            items(news) { article ->
+                UpdateCard(
+                    title = article.title,
+                    time = article.publishedAt,
+                    imageUrl = article.imageUrl
+                )
+            }
+        } else {
+            item {
+                Text(
+                    text = "No news available",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
     }
 }
 
+// UpdateCard for displaying news items
 @Composable
-fun UpdateCard(title: String, time: String) {
+fun UpdateCard(title: String, time: String, imageUrl: String?) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1970,18 +2206,86 @@ fun UpdateCard(title: String, time: String) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = time,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+            // If image URL is available, display the image
+            imageUrl?.let {
+                Image(
+                    painter = rememberImagePainter(it),
+                    contentDescription = "News Image",
+                    modifier = Modifier.size(80.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = time,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = darkAccentColor
+                )
+            }
         }
     }
 }
 
-// Add implementations for EmergencyServiceCard and other supporting composables...
+// Function to fetch news based on the user's location
+fun fetchNewsBasedOnLocation(location: Location, onNewsFetched: (List<NewsArticle>) -> Unit) {
+    val client = OkHttpClient()
+    val apiKey = "1109e8cde88b5dbdb4aa2f8768eedaa8" // Your MediaStack API key
+    val countryCode = "in" // Country code for India (can be dynamic based on location)
+
+    // Construct the URL for the MediaStack request
+    val url = "https://api.mediastack.com/v1/news?access_key=1109e8cde88b5dbdb4aa2f8768eedaa8&country=in"
+    // Perform the network request asynchronously
+    val request = Request.Builder().url(url).build()
+    client.newCall(request).enqueue(object : okhttp3.Callback {
+        @androidx.annotation.OptIn(UnstableApi::class)
+        override fun onFailure(call: okhttp3.Call, e: IOException) {
+            Log.e("NewsRequest", "Error fetching news: ${e.message}")
+        }
+
+        @androidx.annotation.OptIn(UnstableApi::class)
+        override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string()
+                if (responseBody != null) {
+                    try {
+                        val jsonObject = JSONObject(responseBody)
+                        val articles = jsonObject.getJSONArray("data")
+                        val newsList = mutableListOf<NewsArticle>()
+
+                        for (i in 0 until articles.length()) {
+                            val article = articles.getJSONObject(i)
+                            val title = article.getString("title")
+                            val imageUrl = article.optString("image")
+                            val publishedAt = article.getString("published_at")
+                            newsList.add(NewsArticle(title, imageUrl, publishedAt))
+                        }
+
+                        onNewsFetched(newsList)
+
+                    } catch (e: JSONException) {
+                        Log.e("NewsResponse", "Error parsing JSON: ${e.message}")
+                    }
+                }
+            } else {
+                Log.e("NewsResponse", "API request failed with status code: ${response.code}")
+            }
+        }
+    })
+}
+
+// Data class for NewsArticle
+data class NewsArticle(val title: String, val imageUrl: String?, val publishedAt: String)
+
+// Preview for testing in the Compose UI
+@Preview(showBackground = true)
+@Composable
+fun PreviewCommunityUpdates() {
+    CommunityUpdates(language = "English")
+}

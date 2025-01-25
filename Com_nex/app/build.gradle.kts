@@ -58,12 +58,13 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("androidx.compose.material:material-icons-extended:1.5.1") // Add this line
+    implementation(libs.androidx.material.icons.extended) // Add this line
     implementation(libs.androidx.navigation.compose)
     implementation(libs.protolite.well.known.types)
     implementation(libs.androidx.datastore.core.android)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.compilercommon)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -71,9 +72,26 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("com.squareup.okhttp3:okhttp:4.11.0")
-    implementation ("com.jakewharton.threetenabp:threetenabp:1.2.1")
-    implementation ("androidx.core:core:1.12.0")
+    implementation(libs.okhttp)
+    implementation (libs.threetenabp)
+    implementation (libs.androidx.core)
+    implementation (libs.coil.compose)
+    implementation (libs.play.services.location)  // For location services
+    implementation(libs.coil.compose.v210)
+    implementation(libs.okhttp.v490) // OkHttp dependency
+    implementation(libs.json) // JSON library
+
+
+    // Material3 theme for Compose
+    implementation (libs.material3)
+    implementation(libs.ui)
+
+    // Optional: Compose Preview
+    implementation (libs.ui.tooling.preview)
+
+    // Ensure activity support for Compose
+    implementation (libs.androidx.activity.compose.v172)
+
 
 
 

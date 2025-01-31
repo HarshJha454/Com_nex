@@ -798,7 +798,7 @@ fun PolicyDetailsPopup(
                         )
                     }
                 }
-
+                val context = LocalContext.current
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Full Description
@@ -822,7 +822,10 @@ fun PolicyDetailsPopup(
                     // Website Link Button
                     item.websiteLink?.let { link ->
                         Button(
-                            onClick = { /* Implement link opening logic */ },
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                                context.startActivity(intent)
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White.copy(alpha = 0.2f)
                             )
@@ -839,7 +842,10 @@ fun PolicyDetailsPopup(
                     // Contact Button
                     item.contactNumber?.let { contact ->
                         Button(
-                            onClick = { /* Implement contact logic */ },
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$contact"))
+                                context.startActivity(intent)
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White.copy(alpha = 0.2f)
                             )

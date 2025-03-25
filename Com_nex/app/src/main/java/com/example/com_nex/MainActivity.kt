@@ -167,6 +167,9 @@ import coil.compose.AsyncImage
 import coil.compose.rememberImagePainter
 import com.example.com_nex.ui.theme.Com_nexTheme
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import firebase.com.protolitewrapper.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -183,6 +186,7 @@ import java.io.IOException
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.math.roundToInt
+import android.widget.Toast
 
 
 class MainActivity : ComponentActivity() {
@@ -243,7 +247,19 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    
+    // Initialize Firebase Auth helper
+    val authHelper = remember { FirebaseAuthHelper() }
+    
+    // Check if user is already logged in
+    LaunchedEffect(Unit) {
+        if (authHelper.isUserLoggedIn()) {
+            onLoginSuccess()
+        }
+    }
 
     // Animation values for title transition
     val titleOffset by animateFloatAsState(
@@ -267,7 +283,6 @@ fun LoginScreen(
     }
 
     // Set up ExoPlayer with URL video
-    val context = LocalContext.current
     val exoPlayer = remember {
         val videoUri = RawResourceDataSource.buildRawResourceUri(R.raw.video2)
         ExoPlayer.Builder(context).build().apply {
@@ -392,8 +407,8 @@ fun LoginScreen(
                 CustomTextField(
                     value = username,
                     onValueChange = { username = it },
-                    placeholder = "Username",
-                    icon = Icons.Default.Person
+                    placeholder = "Email",
+                    icon = Icons.Default.Email
                 )
 
                 CustomTextField(
@@ -403,13 +418,41 @@ fun LoginScreen(
                     icon = Icons.Default.Lock,
                     isPassword = true
                 )
+                
+                // Display error message if any
+                errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
 
                 Button(
                     onClick = {
+                        if (username.isBlank() || password.isBlank()) {
+                            errorMessage = "Email and password cannot be empty"
+                            return@Button
+                        }
+                        
                         isLoading = true
+                        errorMessage = null
+                        
+                        // Sign in with Firebase Auth using our helper
                         scope.launch {
-                            delay(1500)
-                            onLoginSuccess()
+                            val result = authHelper.signInWithEmailAndPassword(username, password)
+                            isLoading = false
+                            
+                            result.fold(
+                                onSuccess = {
+                                    Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
+                                    onLoginSuccess()
+                                },
+                                onFailure = { exception ->
+                                    errorMessage = "Authentication failed: ${exception.message ?: "Unknown error"}"
+                                }
+                            )
                         }
                     },
                     modifier = Modifier
@@ -429,12 +472,72 @@ fun LoginScreen(
                         Text("Sign In")
                     }
                 }
+                
+                // Register button
+                TextButton(
+                    onClick = {
+                        if (username.isBlank() || password.isBlank()) {
+                            errorMessage = "Email and password cannot be empty"
+                            return@TextButton
+                        }
+                        
+                        isLoading = true
+                        errorMessage = null
+                        
+                        // Create new user with Firebase Auth using our helper
+                        scope.launch {
+                            val result = authHelper.createUserWithEmailAndPassword(username, password)
+                            isLoading = false
+                            
+                            result.fold(
+                                onSuccess = {
+                                    Toast.makeText(context, "Registration successful", Toast.LENGTH_SHORT).show()
+                                    onLoginSuccess()
+                                },
+                                onFailure = { exception ->
+                                    errorMessage = "Registration failed: ${exception.message ?: "Unknown error"}"
+                                }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color.White.copy(alpha = 0.8f)
+                    )
+                ) {
+                    Text("Register")
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    TextButton(onClick = { /* Handle forgot password */ }) {
+                    TextButton(
+                        onClick = { 
+                            if (username.isBlank()) {
+                                errorMessage = "Email cannot be empty"
+                                return@TextButton
+                            }
+                            
+                            isLoading = true
+                            errorMessage = null
+                            
+                            // Send password reset email
+                            scope.launch {
+                                val result = authHelper.sendPasswordResetEmail(username)
+                                isLoading = false
+                                
+                                result.fold(
+                                    onSuccess = {
+                                        Toast.makeText(context, "Password reset email sent", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onFailure = { exception ->
+                                        errorMessage = "Failed to send reset email: ${exception.message ?: "Unknown error"}"
+                                    }
+                                )
+                            }
+                        }
+                    ) {
                         Text("Forgot Password?", color = Color.White.copy(alpha = 0.7f))
                     }
                     TextButton(onClick = onSkip) {
@@ -452,9 +555,15 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    SocialLoginButton(Icons.Default.Email)
-                    SocialLoginButton(Icons.Default.Person)
-                    SocialLoginButton(Icons.Default.Phone)
+                    SocialLoginButton(Icons.Default.Email, onClick = {
+                        // TODO: Implement Google SignIn
+                    })
+                    SocialLoginButton(Icons.Default.Person, onClick = {
+                        // TODO: Implement Facebook SignIn
+                    })
+                    SocialLoginButton(Icons.Default.Phone, onClick = {
+                        // TODO: Implement Phone Auth
+                    })
                 }
             }
         }
@@ -524,7 +633,7 @@ private fun CustomTextField(
 }
 
 @Composable
-private fun SocialLoginButton(icon: ImageVector) {
+private fun SocialLoginButton(icon: ImageVector, onClick: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .size(48.dp)
@@ -534,7 +643,8 @@ private fun SocialLoginButton(icon: ImageVector) {
                 width = 1.dp,
                 color = Color.White.copy(alpha = 0.1f),
                 shape = CircleShape
-            ),
+            )
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -618,7 +728,7 @@ fun MainApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("Home") {
-                HomeContent(selectedLanguage = selectedLanguage)
+                HomeContent(selectedLanguage)
             }
             composable("Explore") {
                 ExploreScreen(selectedLanguage)

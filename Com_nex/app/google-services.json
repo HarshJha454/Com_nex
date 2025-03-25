@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1077102387448",
+    "project_id": "comnex-f3cb8",
+    "storage_bucket": "comnex-f3cb8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1077102387448:web:ee5e0b0c1c8f4384829b0d",
+        "android_client_info": {
+          "package_name": "com.example.com_nex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiwG-gRV8k6F16AuwYNaBpYUf1ClX6tsc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+} 

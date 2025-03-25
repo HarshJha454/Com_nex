@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -58,13 +59,17 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material.icons.extended) // Add this line
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.protolite.well.known.types)
     implementation(libs.androidx.datastore.core.android)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.compilercommon)
+    implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -76,24 +81,12 @@ dependencies {
     implementation (libs.threetenabp)
     implementation (libs.androidx.core)
     implementation (libs.coil.compose)
-    implementation (libs.play.services.location)  // For location services
+    implementation (libs.play.services.location)
     implementation(libs.coil.compose.v210)
-    implementation(libs.okhttp.v490) // OkHttp dependency
-    implementation(libs.json) // JSON library
-
-
-    // Material3 theme for Compose
+    implementation(libs.okhttp.v490)
+    implementation(libs.json)
     implementation (libs.material3)
     implementation(libs.ui)
-
-    // Optional: Compose Preview
     implementation (libs.ui.tooling.preview)
-
-    // Ensure activity support for Compose
     implementation (libs.androidx.activity.compose.v172)
-
-
-
-
-
 }
